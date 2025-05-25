@@ -78,9 +78,32 @@ namespace Sourav_Enterprise.Controllers
 		public async Task<IActionResult> GetOrders()
 		{
 			var orders = await _context.Orders
-				.Include(o => o.OrderItems)
-				.ThenInclude(oi => oi.Product)
-				.ToListAsync();
+			.GroupJoin(
+				_context.OrderItems.Include(oi => oi.Product), // ✅ Ensure Products are loaded
+				order => order.OrderID, // ✅ Match OrderID
+				orderItem => orderItem.OrderID, // ✅ Match OrderItem's OrderID
+				(order, orderItems) => new
+				{
+					order.OrderID,
+					order.UserID,
+					order.UserAddressID,
+					order.OrderDate,
+					order.Status,
+					order.TotalAmount,
+					OrderItems = orderItems.Select(oi => new
+					{
+						oi.ProductID,
+						oi.Quantity,
+						Product = new
+						{
+							oi.Product.ProductID,
+							oi.Product.Name,
+							oi.Product.Price
+						}
+					}).ToList()
+				}
+			)
+			.ToListAsync();
 			return Ok(orders);
 		}
 
@@ -89,9 +112,33 @@ namespace Sourav_Enterprise.Controllers
 		public async Task<IActionResult> GetOrderById(int orderId)
 		{
 			var order = await _context.Orders
-				.Include(o => o.OrderItems)
-				.ThenInclude(oi => oi.Product)
-				.FirstOrDefaultAsync(o => o.OrderID == orderId);
+				.Where(o => o.OrderID == orderId) // ✅ Filter for specific order
+				.GroupJoin(
+					_context.OrderItems.Include(oi => oi.Product), // ✅ Ensure Product details are loaded
+					order => order.OrderID, // ✅ Match OrderID
+					orderItem => orderItem.OrderID, // ✅ Match OrderItem's OrderID
+					(order, orderItems) => new
+					{
+						order.OrderID,
+						order.UserID,
+						order.UserAddressID,
+						order.OrderDate,
+						order.Status,
+						order.TotalAmount,
+						OrderItems = orderItems.Select(oi => new
+						{
+							oi.ProductID,
+							oi.Quantity,
+							Product = new
+							{
+								oi.Product.ProductID,
+								oi.Product.Name,
+								oi.Product.Price
+							}
+						}).ToList()
+					}
+				)
+				.FirstOrDefaultAsync(); // ✅ Get only one order
 
 			if (order == null)
 				return NotFound($"Order ID {orderId} not found.");
@@ -157,13 +204,35 @@ namespace Sourav_Enterprise.Controllers
 
 		//	// ✅ Get Orders by User (GET)  
 		[HttpGet("user/{userId}")]
-		//[Route("GetOrdersByUser")]
 		public async Task<IActionResult> GetOrdersByUser(int userId)
 		{
 			var orders = await _context.Orders
-				.Where(o => o.UserID == userId)
-				.Include(o => o.OrderItems)
-				.ThenInclude(oi => oi.Product)
+				.Where(o => o.UserID == userId) // ✅ Filter orders by user ID
+				.GroupJoin(
+					_context.OrderItems.Include(oi => oi.Product), // ✅ Ensure Product details are loaded
+					order => order.OrderID, // ✅ Match OrderID
+					orderItem => orderItem.OrderID, // ✅ Match OrderItem's OrderID
+					(order, orderItems) => new
+					{
+						order.OrderID,
+						order.UserID,
+						order.UserAddressID,
+						order.OrderDate,
+						order.Status,
+						order.TotalAmount,
+						OrderItems = orderItems.Select(oi => new
+						{
+							oi.ProductID,
+							oi.Quantity,
+							Product = new
+							{
+								oi.Product.ProductID,
+								oi.Product.Name,
+								oi.Product.Price
+							}
+						}).ToList()
+					}
+				)
 				.ToListAsync();
 
 			if (!orders.Any())
@@ -177,9 +246,32 @@ namespace Sourav_Enterprise.Controllers
 		public async Task<IActionResult> GetOrdersByStatus(string status)
 		{
 			var orders = await _context.Orders
-				.Where(o => o.Status.ToLower() == status.ToLower())
-				.Include(o => o.OrderItems)
-				.ThenInclude(oi => oi.Product)
+				.Where(o => o.Status.ToLower() == status.ToLower()) // ✅ Filter orders by status
+				.GroupJoin(
+					_context.OrderItems.Include(oi => oi.Product), // ✅ Ensure Product details are loaded
+					order => order.OrderID, // ✅ Match OrderID
+					orderItem => orderItem.OrderID, // ✅ Match OrderItem's OrderID
+					(order, orderItems) => new
+					{
+						order.OrderID,
+						order.UserID,
+						order.UserAddressID,
+						order.OrderDate,
+						order.Status,
+						order.TotalAmount,
+						OrderItems = orderItems.Select(oi => new
+						{
+							oi.ProductID,
+							oi.Quantity,
+							Product = new
+							{
+								oi.Product.ProductID,
+								oi.Product.Name,
+								oi.Product.Price
+							}
+						}).ToList()
+					}
+				)
 				.ToListAsync();
 
 			if (!orders.Any())
