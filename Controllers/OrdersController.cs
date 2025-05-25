@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Sourav_Enterprise.Data;
+using Sourav_Enterprise.DTO;
+using Sourav_Enterprise.DTO.OrderDto.Sourav_Enterprise.DTO;
 using Sourav_Enterprise.Models;
 
 namespace Sourav_Enterprise.Controllers
@@ -24,28 +26,53 @@ namespace Sourav_Enterprise.Controllers
 		// ✅ Create Order (POST)  
 		[HttpPost]
 		[Route("CreateOrder")]
-		public async Task<IActionResult> CreateOrder([FromBody] Order order)
+		public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequestDto orderDto)
 		{
-			if (!_context.Users.Any(u => u.UserID == order.UserID))
+			if (orderDto == null) return BadRequest("Invalid request body.");
+
+			if (!_context.Users.Any(u => u.UserID == orderDto.UserID))
 				return BadRequest("Invalid User.");
 
-			if (!_context.UserAddresses.Any(ua => ua.AddressID == order.UserAddressID))
-				return BadRequest("Invalid Address.");
+			if (!_context.UserAddresses.Any(ua => ua.AddressID == orderDto.AddressID && ua.UserID == orderDto.UserID))
+				return BadRequest("Invalid Address: Address does not belong to user.");
 
-			foreach (var item in order.OrderItems)
+			foreach (var item in orderDto.OrderItems)
 			{
-				var product = _context.Products.FirstOrDefault(p => p.ProductID == item.ProductID);
+				var product = await _context.Products.FindAsync(item.ProductID);
 				if (product == null || product.Stock < item.Quantity)
 					return BadRequest($"Product {item.ProductID} is unavailable or out of stock.");
 			}
 
-			_context.Orders.Add(order);
-			await _context.SaveChangesAsync();
+			// ✅ Step 1: Create & Save Order First
+			var order = new Order
+			{
+				UserID = orderDto.UserID,
+				UserAddressID = orderDto.AddressID,
+				Status = "Pending",
+				OrderDate = DateTime.UtcNow
+			};
 
-			return Ok(order);
+			_context.Orders.Add(order);
+			await _context.SaveChangesAsync(); // ✅ Ensure OrderID is generated
+
+			// ✅ Step 2: Now Add OrderItems After Order is Saved
+			foreach (var item in orderDto.OrderItems)
+			{
+				var orderItem = new OrderItem
+				{
+					OrderID = order.OrderID, // ✅ Correct OrderID
+					ProductID = item.ProductID,
+					Quantity = item.Quantity
+				};
+				_context.OrderItems.Add(orderItem);
+			}
+
+			await _context.SaveChangesAsync(); // ✅ Save OrderItems after Order exists
+
+			return Ok(new { message = "Order Created Successfully!", OrderID = order.OrderID });
 		}
 
-		 //✅ Get All Orders(GET)
+		//✅ Get All Orders(GET)
 		[HttpGet]
 		[Route("GetAllOrders")]
 		public async Task<IActionResult> GetOrders()
