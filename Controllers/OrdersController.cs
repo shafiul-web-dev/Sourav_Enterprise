@@ -280,7 +280,7 @@ namespace Sourav_Enterprise.Controllers
 			return Ok(orders);
 		}
 
-
+		//Get Top Customers
 		[HttpGet("top-customers")]
 		public async Task<IActionResult> GetTopCustomers()
 		{
@@ -298,6 +298,322 @@ namespace Sourav_Enterprise.Controllers
 
 			return Ok(topCustomers);
 		}
+
+		//Get High Order Values 
+		[HttpGet("high-value-orders")]
+		public async Task<IActionResult> GetHighValueOrders()
+		{
+			// Calculate the average total amount
+			var averageTotalAmount = await _context.Orders.AverageAsync(o => o.TotalAmount);
+
+			// Fetch high-value orders using Method Syntax
+			var highValueOrders = await _context.Orders
+				.Join(_context.Users,
+					  order => order.UserID, // Match Order's UserID
+					  user => user.UserID, // Match User's UserID
+					  (order, user) => new
+					  {
+						  OrderID = order.OrderID,
+						  UserName = user.Name,
+						  TotalAmount = order.TotalAmount
+					  })
+				.Where(order => order.TotalAmount > averageTotalAmount) // Filter orders above average
+				.OrderByDescending(order => order.TotalAmount) // Sort by highest TotalAmount
+				.ToListAsync();
+
+			if (!highValueOrders.Any())
+				return NotFound("No high-value orders found.");
+
+			return Ok(highValueOrders);
+		}
+
+		//WHich customer order more than 5
+		[HttpGet("repeat-customers")]
+		public async Task<IActionResult> GetRepeatCustomers()
+		{
+			var repeatCustomers = await _context.Orders
+				.Join(_context.Users,
+					  order => order.UserID, // Match Order's UserID
+					  user => user.UserID, // Match User's UserID
+					  (order, user) => new
+					  {
+						  UserName = user.Name,
+						  Email = user.Email,
+						  OrderID = order.OrderID
+					  })
+				.GroupBy(order => new { order.UserName, order.Email })
+				.Where(group => group.Count() > 5) // Filter customers with > 5 orders
+				.OrderByDescending(group => group.Count()) // Sort by highest order count
+				.Select(group => new
+				{
+					UserName = group.Key.UserName,
+					Email = group.Key.Email,
+					TotalOrders = group.Count()
+				})
+				.ToListAsync();
+
+			if (!repeatCustomers.Any())
+				return NotFound("No repeat customers found.");
+
+			return Ok(repeatCustomers);
+		}
+
+		//Peak Time of Orders
+		[HttpGet("peak-shopping-hours")]
+		public async Task<IActionResult> GetPeakShoppingHours()
+		{
+			var oneMonthAgo = DateTime.UtcNow.AddMonths(-1);
+
+			var peakHours = await _context.Orders
+				.Where(order => order.OrderDate >= oneMonthAgo) // Filter orders from the last month
+				.GroupBy(order => order.OrderDate.Hour) // Group by hour (24-hour format)
+				.OrderByDescending(group => group.Count()) // Sort by highest order count
+				.Select(group => new
+				{
+					Hour = group.Key + ":00", // Format hour as "HH:00"
+					TotalOrderCount = group.Count()
+				})
+				.ToListAsync();
+
+			if (!peakHours.Any())
+				return NotFound("No order data found for peak hours.");
+
+			return Ok(peakHours);
+		}
+
+		//Which month has most Orders
+		[HttpGet("seasonal-order-trends")]
+		public async Task<IActionResult> GetSeasonalOrderTrends()
+		{
+			var sixMonthsAgo = DateTime.UtcNow.AddMonths(-6);
+
+			var seasonalTrends = await _context.Orders
+				.Where(order => order.OrderDate >= sixMonthsAgo) // Filter orders from the last 6 months
+				.GroupBy(order => new { order.OrderDate.Year, order.OrderDate.Month }) // Group by year and month
+				.OrderByDescending(group => group.Count()) // Sort by highest order count
+				.Select(group => new
+				{
+					Month = $"{group.Key.Year}-{group.Key.Month:00}", // Format as "yyyy-MM"
+					TotalOrders = group.Count()
+				})
+				.ToListAsync();
+
+			if (!seasonalTrends.Any())
+				return NotFound("No seasonal order data found.");
+
+			return Ok(seasonalTrends);
+		}
+
+		//Revenue Per Month
+		[HttpGet("monthly-revenue")]
+		public async Task<IActionResult> GetMonthlyRevenue()
+		{
+			var monthlyRevenue = await _context.Orders
+				.GroupBy(order => new { order.OrderDate.Year, order.OrderDate.Month }) // Group by Year-Month
+				.OrderByDescending(group => group.Key.Year) // Sort by latest year first
+				.ThenByDescending(group => group.Key.Month) // Sort by latest month first
+				.Select(group => new
+				{
+					Month = $"{group.Key.Year}-{group.Key.Month:00}", // Format as "yyyy-MM"
+					MonthlyRevenue = group.Sum(order => order.TotalAmount) // Sum total revenue per month
+				})
+				.ToListAsync();
+
+			if (!monthlyRevenue.Any())
+				return NotFound("No revenue data found.");
+
+			return Ok(monthlyRevenue);
+		}
+
+		//Most Order Customers
+		[HttpGet("loyal-customers")]
+		public async Task<IActionResult> GetLoyalCustomers()
+		{
+			var loyalCustomers = await _context.Orders
+				.GroupBy(order => new { order.User.Name, order.User.Email }) // Group by Customer Name & Email
+				.OrderByDescending(group => group.Count()) // Sort by highest order count
+				.Select(group => new
+				{
+					Name = group.Key.Name,
+					Email = group.Key.Email,
+					TotalOrders = group.Count()
+				})
+				.Take(5) // Select top 5 customers
+				.ToListAsync();
+
+			if (!loyalCustomers.Any())
+				return NotFound("No loyal customers found.");
+
+			return Ok(loyalCustomers);
+		}
+
+        //Full Details of ORDER 
+		[HttpGet("full-order-report")]
+		public async Task<IActionResult> GetFullOrderReport()
+		{
+			var fullOrderReport = await _context.Orders
+				.Join(_context.Users,
+					  order => order.UserID, // Match Order's UserID
+					  user => user.UserID, // Match User's UserID
+					  (order, user) => new
+					  {
+						  OrderID = order.OrderID,
+						  Customer = user.Name,
+						  Email = user.Email
+					  })
+				.Join(_context.OrderItems,
+					  order => order.OrderID, // Match OrderID in Orders
+					  orderItem => orderItem.OrderID, // Match OrderID in OrderItems
+					  (order, orderItem) => new
+					  {
+						  order.OrderID,
+						  order.Customer,
+						  order.Email,
+						  ProductID = orderItem.ProductID,
+						  Quantity = orderItem.Quantity,
+						  Price = orderItem.Price
+					  })
+				.Join(_context.Products,
+					  orderItem => orderItem.ProductID, // Match ProductID in OrderItems
+					  product => product.ProductID, // Match ProductID in Products
+					  (orderItem, product) => new
+					  {
+						  orderItem.OrderID,
+						  orderItem.Customer,
+						  orderItem.Email,
+						  Product = product.Name,
+						  orderItem.Quantity,
+						  orderItem.Price
+					  })
+				.Join(_context.Payments,
+					  order => order.OrderID, // Match OrderID in Orders
+					  payment => payment.OrderID, // Match OrderID in Payments
+					  (order, payment) => new
+					  {
+						  order.OrderID,
+						  order.Customer,
+						  order.Email,
+						  order.Product,
+						  order.Quantity,
+						  order.Price,
+						  PaymentAmount = payment.Amount
+					  })
+				.Join(_context.Shippings,
+					  order => order.OrderID, // Match OrderID in Orders
+					  shipping => shipping.OrderID, // Match OrderID in Shipping
+					  (order, shipping) => new
+					  {
+						  order.OrderID,
+						  order.Customer,
+						  order.Email,
+						  order.Product,
+						  order.Quantity,
+						  order.Price,
+						  order.PaymentAmount,
+						  ShippingStatus = shipping.Status,
+						  ShippingDate = shipping.ShippingDate
+					  })
+				.OrderBy(order => order.OrderID) // Sort by OrderID (ascending)
+				.ToListAsync();
+
+			if (!fullOrderReport.Any())
+				return NotFound("No order data found.");
+
+			return Ok(fullOrderReport);
+		}
+
+		//Pending Orders
+		[HttpGet("pending-orders")]
+		public async Task<IActionResult> GetPendingOrders()
+		{
+			var pendingOrders = await _context.Orders
+				.Where(order => order.Status == "pending") // Filter orders with status 'pending'
+				.OrderBy(order => order.OrderID) // Sort by OrderID (ascending)
+				.ToListAsync();
+
+			if (!pendingOrders.Any())
+				return NotFound("No pending orders found.");
+
+			return Ok(pendingOrders);
+		}
+
+		//Order of Last 30 Days 
+		[HttpGet("orders-last-30-days")]
+		public async Task<IActionResult> GetOrdersLast30Days()
+		{
+			var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
+
+			var recentOrders = await _context.Orders
+				.Where(order => order.OrderDate >= thirtyDaysAgo) // Filter orders from the last 30 days
+				.GroupBy(order => order.OrderID) // Group by OrderID
+				.OrderByDescending(group => group.Count()) // Sort by highest order count
+				.Select(group => new
+				{
+					OrderID = group.Key,
+					TotalOrders = group.Count()
+				})
+				.ToListAsync();
+
+			if (!recentOrders.Any())
+				return NotFound("No orders found in the last 30 days.");
+
+			return Ok(recentOrders);
+		}
+
+		[HttpGet("recent-orders")]
+		public async Task<IActionResult> GetRecentOrders()
+		{
+			var sevenDaysAgo = DateTime.UtcNow.AddDays(-7);
+
+			var recentOrders = await _context.Orders
+				.Where(order => order.OrderDate >= sevenDaysAgo) // Filter orders from the last 7 days
+				.OrderByDescending(order => order.OrderID) // Sort by latest OrderID
+				.Select(order => new
+				{
+					OrderID = order.OrderID,
+					OrderDate = order.OrderDate,
+					Status = order.Status,
+					TotalAmount = order.TotalAmount
+				})
+				.ToListAsync();
+
+			if (!recentOrders.Any())
+				return NotFound("No recent orders found.");
+
+			return Ok(recentOrders);
+		}
+
+		[HttpGet("cancelled-orders")]
+		public async Task<IActionResult> GetCancelledOrdersAfterPayment()
+		{
+			var cancelledOrders = await _context.Orders
+				.Join(_context.Payments,
+					  order => order.OrderID, // Match OrderID in Orders
+					  payment => payment.OrderID, // Match OrderID in Payments
+					  (order, payment) => new
+					  {
+						  OrderID = order.OrderID,
+						  Customer = order.User.Name, // Navigation property for User
+						  PaymentMethod = payment.PaymentMethod,
+						  Status = order.Status,
+						  Amount = payment.Amount
+					  })
+				.Where(order => order.Status == "Cancelled") // Filter cancelled orders
+				.OrderByDescending(order => order.Amount) // Sort by highest payment amount
+				.ToListAsync();
+
+			if (!cancelledOrders.Any())
+				return NotFound("No cancelled orders found.");
+
+			return Ok(cancelledOrders);
+		}
+
+
+
+
+
+
+
 	}
 
 }  
