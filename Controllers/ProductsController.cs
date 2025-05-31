@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using Sourav_Enterprise.Data;
 using Sourav_Enterprise.Models;
 
@@ -211,6 +212,170 @@ public class ProductController : ControllerBase
 	#endregion // 🔹 Business Logic for Products
 
 	#region // Query from Database
+	//Best-selling Products
+	[HttpGet("best-sellers")]
+	public async Task<IActionResult> GetBestSellingProducts()
+	{
+		var bestSellers = await _context.OrderItems
+			.GroupBy(o => o.Product.Name)
+			.Select(g => new
+			{
+				ProductName = g.Key,
+				TotalRevenue = g.Sum(o => o.Price * o.Quantity)
+			})
+			.OrderByDescending(p => p.TotalRevenue)
+			.Take(5)
+			.ToListAsync();
+
+		return Ok(bestSellers);
+	}
+
+	// 🔹 Products with Low Stock
+	[HttpGet("low-stock")]
+	public async Task<IActionResult> GetLowStockProducts()
+	{
+		var lowStockProducts = await _context.Inventories
+			.Join(_context.Products,
+				inventory => inventory.ProductID,
+				product => product.ProductID,
+				(inventory, product) => new
+				{
+					ProductName = product.Name,
+					QuantityInStock = inventory.QuantityInStock,
+					TotalSold = _context.OrderItems.Where(o => o.ProductID == product.ProductID)
+												   .Sum(o => (int?)o.Quantity) ?? 0 // Ensures NULL-safe handling
+				})
+			.Where(p => p.QuantityInStock < p.TotalSold) // Filter low-stock items
+			.Select(p => new
+			{
+				ProductName = p.ProductName,
+				QuantityInStock = p.QuantityInStock,
+				TotalSold = p.TotalSold,
+				StockStatus = p.QuantityInStock < 5 ? "Critical Low Stock" :
+							  p.QuantityInStock >= 5 && p.QuantityInStock <= 15 ? "Low Stock" : "Sufficient Stock"
+			})
+			.OrderBy(p => p.QuantityInStock)
+			.ToListAsync();
+
+		return Ok(lowStockProducts);
+	}
+
+	//revenue-analysis per product
+	[HttpGet("revenue-analysis")]
+	public async Task<IActionResult> GetProductRevenueAnalysis()
+	{
+		var revenueData = await _context.OrderItems
+			.GroupBy(o => o.Product.Name)
+			.Select(g => new
+			{
+				ProductName = g.Key,
+				TotalSold = g.Sum(o => o.Quantity),
+				TotalRevenue = g.Sum(o => o.Price * o.Quantity)
+			})
+			.OrderByDescending(p => p.TotalRevenue)
+			.ToListAsync();
+
+		return Ok(revenueData);
+	}
+
+	//User Purchase History
+	[HttpGet("user-orders/{userId}")]
+	public async Task<IActionResult> GetUserPurchaseHistory(int userId)
+	{
+		var purchaseHistory = await _context.Orders
+	        .Where(o => o.UserID == userId)
+	        .GroupJoin(
+	    	_context.OrderItems,
+		    order => order.OrderID,
+	    	orderItem => orderItem.OrderID,
+		    (order, orderItems) => new
+		    {
+		    	UserID = order.UserID,
+			    UserName = order.User.Name,
+		    	OrderID = order.OrderID,
+		     	OrderDate = order.OrderDate,
+		    	Products = orderItems.Select(oi => new
+		     	{
+			     	ProductName = oi.Product.Name,
+			    	Quantity = oi.Quantity,
+			    	TotalSpent = oi.Price * oi.Quantity
+		     	}).ToList()
+	    	})
+	        .OrderByDescending(o => o.OrderDate)
+	        .ToListAsync();
+		return Ok(purchaseHistory);
+	}
+
+	//Most Reviewed Products
+	[HttpGet("most-reviewed")]
+	public async Task<IActionResult> GetMostReviewedProducts()
+	{
+		var mostReviewedProducts = await _context.Reviews
+			.GroupBy(r => r.Product.Name)
+			.Select(g => new
+			{
+				ProductName = g.Key,
+				TotalReviews = g.Count()
+			})
+			.OrderByDescending(p => p.TotalReviews)
+			.ToListAsync();
+
+		return Ok(mostReviewedProducts);
+	}
+	//recently added products
+	[HttpGet("recent-products")]
+	public async Task<IActionResult> GetRecentlyAddedProducts()
+	{
+		var recentProducts = await _context.Products
+			.OrderByDescending(p => p.CreatedAt)
+			.Select(p => new
+			{
+				ProductID = p.ProductID,
+				ProductName = p.Name,
+				CreatedAt = p.CreatedAt
+			})
+			.ToListAsync();
+
+		return Ok(recentProducts);
+	}
+
+	//Category-based-product-sell
+	[HttpGet("category-sales")]
+	public async Task<IActionResult> GetCategorySalesBreakdown()
+	{
+		var categorySales = await _context.OrderItems
+			.Join(_context.Products,
+				orderItem => orderItem.ProductID,
+				product => product.ProductID,
+				(orderItem, product) => new { orderItem, product })
+			.Join(_context.Categories,
+				op => op.product.CategoryID,
+				category => category.CategoryID,
+				(op, category) => new
+				{
+					ProductName = op.product.Name,
+					CategoryName = category.Name,
+					TotalRevenue = op.orderItem.Quantity * op.orderItem.Price
+				})
+			.GroupBy(c => new { c.ProductName, c.CategoryName })
+			.Select(g => new
+			{
+				ProductName = g.Key.ProductName,
+				CategoryName = g.Key.CategoryName,
+				TotalRevenue = g.Sum(x => x.TotalRevenue)
+			})
+			.OrderByDescending(x => x.TotalRevenue)
+			.ToListAsync();
+
+		return Ok(categorySales);
+	}
+
+
+
+
+
+
+
 	#endregion
 
 }
