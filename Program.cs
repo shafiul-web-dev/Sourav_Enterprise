@@ -40,17 +40,17 @@ namespace Sourav_Enterprise
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
-
+            app.Environment.IsDevelopment();
+            
+            app.UseSwagger();
+            app.UseSwaggerUI();
+            
             app.UseHttpsRedirection();
 
-            app.UseAuthorization();
+			app.UseAuthentication(); // 🔹 Add this BEFORE Authorization
+			app.UseAuthorization();
 
-            app.MapControllers();
+			app.MapControllers();
 
             app.Run();
         }

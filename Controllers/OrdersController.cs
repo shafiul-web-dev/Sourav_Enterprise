@@ -608,11 +608,55 @@ namespace Sourav_Enterprise.Controllers
 			return Ok(cancelledOrders);
 		}
 
+		// 🔹 Update Stock on Order Placement
+		[HttpPut("update-stock/{productId}/{quantity}")]  // 🔹 Explicit HTTP method
+		public async Task<IActionResult> UpdateStockOnOrder(int productId, int quantity)
+		{
+			var inventory = await _context.Inventories.FirstOrDefaultAsync(i => i.ProductID == productId);
+			if (inventory == null || inventory.QuantityInStock < quantity)
+				return BadRequest("Insufficient stock!");
 
+			inventory.QuantityInStock -= quantity;
+			inventory.LastUpdated = DateTime.UtcNow;
 
+			_context.Inventories.Update(inventory);
+			await _context.SaveChangesAsync();
 
+			return Ok("Stock updated successfully.");
+		}
 
+		[HttpPost("place-order")]
+		public async Task<IActionResult> PlaceOrder(Order order)
+		{
+			using var transaction = await _context.Database.BeginTransactionAsync();
 
+			try
+			{
+				foreach (var item in order.OrderItems)
+				{
+					// Fetch inventory directly
+					var inventory = await _context.Inventories.FirstOrDefaultAsync(i => i.ProductID == item.ProductID);
+					if (inventory == null || inventory.QuantityInStock < item.Quantity)
+						return BadRequest($"Insufficient stock for Product {item.ProductID}");
+
+					// Deduct stock quantity
+					inventory.QuantityInStock -= item.Quantity;
+					inventory.LastUpdated = DateTime.UtcNow;
+					_context.Inventories.Update(inventory);
+				}
+
+				_context.Orders.Add(order);
+				await _context.SaveChangesAsync();
+				await transaction.CommitAsync();
+
+				return Ok("Order placed successfully, stock updated.");
+			}
+			catch (Exception ex)
+			{
+				await transaction.RollbackAsync();
+				return StatusCode(500, $"An error occurred: {ex.Message}");
+			}
+		}
 
 	}
 
