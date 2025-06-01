@@ -16,18 +16,16 @@ public class ProductController : ControllerBase
 	}
 
 	#region // 🔹 Business Logic for Products
-	// 🔹 Get All Products with Sorting & Pagination
 	[HttpGet]
 	public async Task<IActionResult> GetProducts(
 	string? search, string? sortBy, bool? ascending = true, int page = 1, int pageSize = 10)
 	{
 		var productsQuery = _context.Products.Include(p => p.Category).AsQueryable();
 
-		// 🔍 Search by Name
 		if (!string.IsNullOrEmpty(search))
 			productsQuery = productsQuery.Where(p => p.Name.Contains(search));
 
-		// 🔹 Sorting
+
 		if (sortBy == "rating")
 		{
 			var productsWithRatings = await _context.Products
@@ -51,11 +49,10 @@ public class ProductController : ControllerBase
 			{
 				"price" => ascending == true ? productsQuery.OrderBy(p => p.Price) : productsQuery.OrderByDescending(p => p.Price),
 				"name" => ascending == true ? productsQuery.OrderBy(p => p.Name) : productsQuery.OrderByDescending(p => p.Name),
-				_ => productsQuery.OrderBy(p => p.ProductID) // Default sort by ID
+				_ => productsQuery.OrderBy(p => p.ProductID)
 			};
 		}
 
-		// 📌 Pagination
 		var totalRecords = await productsQuery.CountAsync();
 		var products = await productsQuery
 			.Skip((page - 1) * pageSize)
@@ -79,7 +76,7 @@ public class ProductController : ControllerBase
 		if (maxPrice.HasValue)
 			query = query.Where(p => p.Price <= maxPrice);
 
-		// 🔹 Apply Stock Availability Filter
+
 		if (inStock.HasValue)
 			query = inStock.Value
 				? query.Where(p => _context.Inventories.Any(i => i.ProductID == p.ProductID && i.QuantityInStock > 0))
@@ -89,7 +86,7 @@ public class ProductController : ControllerBase
 		return Ok(products);
 	}
 
-	// 🔹 Get Single Product by ID
+
 	[HttpGet("{id}")]
 	public async Task<IActionResult> GetProductById(int id)
 	{
@@ -106,7 +103,7 @@ public class ProductController : ControllerBase
 		return Ok(new { product, AvailableStock = availableStock, StockStatus = stockStatus, AverageRating = avgRating });
 	}
 
-	// 🔹 Create a New Product
+
 	[HttpPost]
 	public async Task<IActionResult> CreateProduct(Product product)
 	{
@@ -115,7 +112,6 @@ public class ProductController : ControllerBase
 		return CreatedAtAction(nameof(GetProductById), new { id = product.ProductID }, product);
 	}
 
-	// 🔹 Update an Existing Product
 	[HttpPut("{id}")]
 	public async Task<IActionResult> UpdateProduct(int id, Product updatedProduct)
 	{
@@ -155,7 +151,7 @@ public class ProductController : ControllerBase
 		var inventory = await _context.Inventories.FirstOrDefaultAsync(i => i.ProductID == productId);
 		if (inventory == null) return NotFound("Product not found in inventory.");
 
-		inventory.QuantityInStock += newStock;  // 🔹 Increase stock
+		inventory.QuantityInStock += newStock; 
 		inventory.LastUpdated = DateTime.UtcNow;
 
 		_context.Inventories.Update(inventory);
@@ -164,7 +160,7 @@ public class ProductController : ControllerBase
 		return Ok($"Product {productId} restocked successfully. New Quantity: {inventory.QuantityInStock}");
 	}
 
-	// 🔹 Delete a Product
+
 	[HttpDelete("{id}")]
 	public async Task<IActionResult> DeleteProduct(int id)
 	{
@@ -230,7 +226,7 @@ public class ProductController : ControllerBase
 		return Ok(bestSellers);
 	}
 
-	// 🔹 Products with Low Stock
+	// Products with Low Stock
 	[HttpGet("low-stock")]
 	public async Task<IActionResult> GetLowStockProducts()
 	{
@@ -243,9 +239,9 @@ public class ProductController : ControllerBase
 					ProductName = product.Name,
 					QuantityInStock = inventory.QuantityInStock,
 					TotalSold = _context.OrderItems.Where(o => o.ProductID == product.ProductID)
-												   .Sum(o => (int?)o.Quantity) ?? 0 // Ensures NULL-safe handling
+												   .Sum(o => (int?)o.Quantity) ?? 0
 				})
-			.Where(p => p.QuantityInStock < p.TotalSold) // Filter low-stock items
+			.Where(p => p.QuantityInStock < p.TotalSold)
 			.Select(p => new
 			{
 				ProductName = p.ProductName,
@@ -369,12 +365,6 @@ public class ProductController : ControllerBase
 
 		return Ok(categorySales);
 	}
-
-
-
-
-
-
 
 	#endregion
 

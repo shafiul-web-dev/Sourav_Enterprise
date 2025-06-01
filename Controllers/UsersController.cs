@@ -212,7 +212,7 @@ namespace Sourav_Enterprise.Controllers
 						(orders.Sum(o => (decimal?)o.TotalAmount) > 5000 ? "Premium" :
 						orders.Sum(o => (decimal?)o.TotalAmount) >= 1000 && orders.Sum(o => (decimal?)o.TotalAmount) <= 5000 ? "Gold" :
 						orders.Sum(o => (decimal?)o.TotalAmount) >= 500 && orders.Sum(o => (decimal?)o.TotalAmount) <= 1000 ? "Silver" : "Standard")
-						: "No_Orders" // ✅ Ensures users with no orders default to "Standard"
+						: "No_Orders" 
 				}).OrderByDescending(u => u.LifetimeSpend).ToListAsync();
 
 			return Ok(customerSpendingTiers);
@@ -223,7 +223,7 @@ namespace Sourav_Enterprise.Controllers
 		{
 
 			var highFrequencyBuyers = await _context.Users
-				.Where(user => _context.Orders.Count(order => order.UserID == user.UserID) > 3) // ✅ Filters users first!
+				.Where(user => _context.Orders.Count(order => order.UserID == user.UserID) > 3)
 				.GroupJoin(
 					_context.Orders,
 					user => user.UserID,
@@ -232,10 +232,10 @@ namespace Sourav_Enterprise.Controllers
 					{
 						UserID = user.UserID,
 						Name = user.Name,
-						TotalOrders = orders.Count() // ✅ Already optimized above!
+						TotalOrders = orders.Count() 
 					}
 				)
-				.OrderByDescending(u => u.TotalOrders) // ✅ Sorting remains the same
+				.OrderByDescending(u => u.TotalOrders)
 				.ToListAsync();
 
 			return Ok(highFrequencyBuyers);
@@ -255,7 +255,7 @@ namespace Sourav_Enterprise.Controllers
 					CustomerType = orders.Count() == 1 ? "New Customer" :
 						   orders.Count() > 1 ? "Returning Customer" : "No Orders"
 				})
-				.OrderByDescending(u => u.CustomerType) // ✅ Sorts by CustomerType
+				.OrderByDescending(u => u.CustomerType)
 				.ToListAsync();
 
 			return Ok(customerTypes);
@@ -265,7 +265,7 @@ namespace Sourav_Enterprise.Controllers
 		public async Task<IActionResult> GetFraudCustomers()
 		{
 			var fraudCustomers = await _context.Users
-			.Where(user => _context.Orders.Count(o => o.UserID == user.UserID && o.Status == "Cancelled") > 3) // ✅ Filters users earlier!
+			.Where(user => _context.Orders.Count(o => o.UserID == user.UserID && o.Status == "Cancelled") > 3)
 			.GroupJoin(
 				_context.Orders,
 				user => user.UserID,
@@ -275,10 +275,10 @@ namespace Sourav_Enterprise.Controllers
 					UserID = user.UserID,
 					Name = user.Name,
 					Email = user.Email,
-					CanceledOrders = orders.Count(o => o.Status == "Cancelled") // ✅ Optimized version
+					CanceledOrders = orders.Count(o => o.Status == "Cancelled") 
 				}
 			)
-			.OrderByDescending(u => u.CanceledOrders) // ✅ Sorting remains unchanged
+			.OrderByDescending(u => u.CanceledOrders)
 			.ToListAsync();
 
 			return Ok(fraudCustomers);
@@ -288,7 +288,7 @@ namespace Sourav_Enterprise.Controllers
 		public async Task<IActionResult> GetBestCustomers()
 		{
 			var bestCustomers = await _context.Users
-				.Where(user => _context.Orders.Any(order => order.UserID == user.UserID)) // ✅ Only users with orders are processed
+				.Where(user => _context.Orders.Any(order => order.UserID == user.UserID))
 				.GroupJoin(
 					_context.Orders,
 					user => user.UserID,
@@ -299,14 +299,14 @@ namespace Sourav_Enterprise.Controllers
 						Name = user.Name,
 						Email = user.Email,
 						OrdersCount = orders.Count(),
-						TotalSpend = orders.Sum(o => o.TotalAmount) // ✅ Optimized version
+						TotalSpend = orders.Sum(o => o.TotalAmount)
 					}
 				)
 				.OrderByDescending(u => u.OrdersCount)
 				.ThenByDescending(u => u.TotalSpend)
 				.ToListAsync();
 
-			// ✅ Assigning RANK manually since LINQ doesn't have RANK()
+			
 			var rankedCustomers = bestCustomers.Select((customer, index) => new
 			{
 				customer.UserID,
@@ -314,7 +314,7 @@ namespace Sourav_Enterprise.Controllers
 				customer.Email,
 				customer.OrdersCount,
 				customer.TotalSpend,
-				CustomerRank = index + 1 // ✅ Assigns rank based on sorted order
+				CustomerRank = index + 1
 			}).ToList();
 
 			return Ok(rankedCustomers);
@@ -327,15 +327,15 @@ namespace Sourav_Enterprise.Controllers
 				.Join(_context.Wishlists, user => user.UserID, wishlist => wishlist.UserID,
 					(user, wishlist) => new { user, wishlist })
 				.Join(_context.Products, uw => uw.wishlist.ProductID, product => product.ProductID,
-					(uw, product) => new { uw.user, Product = product, uw.wishlist }) // ✅ Explicitly naming product
-				.GroupBy(x => new { x.user.UserID, x.user.Name, ProductName = x.Product.Name }) // ✅ Proper product name reference
+					(uw, product) => new { uw.user, Product = product, uw.wishlist })
+				.GroupBy(x => new { x.user.UserID, x.user.Name, ProductName = x.Product.Name })
 				.OrderBy(g => g.Key.UserID)
 				.Select(g => new
 				{
 					UserID = g.Key.UserID,
 					UserName = g.Key.Name,
-					ItemName = g.Key.ProductName, // ✅ Correctly extracts Product Name
-					TotalWishList = g.Count() // ✅ Counts wishlist occurrences per product
+					ItemName = g.Key.ProductName, 
+					TotalWishList = g.Count()
 				})
 				.ToListAsync();
 
@@ -350,10 +350,10 @@ namespace Sourav_Enterprise.Controllers
 					_context.Orders,
 					user => user.UserID,
 					order => order.UserID,
-					(user, orders) => new { user, orders } // ✅ Groups users with related orders
+					(user, orders) => new { user, orders }
 				)
-				.SelectMany(u => u.orders.DefaultIfEmpty(), (u, order) => new { u.user, order }) // ✅ Expands the grouped data (Simulates Left Join)
-				.Where(u => u.order == null) // ✅ Filters users with NO orders
+				.SelectMany(u => u.orders.DefaultIfEmpty(), (u, order) => new { u.user, order })
+				.Where(u => u.order == null)
 				.Select(u => new
 				{
 					UserID = u.user.UserID,
@@ -374,9 +374,9 @@ namespace Sourav_Enterprise.Controllers
 				{
 					UserID = g.Key.UserID,
 					UserName = g.Key.Name,
-					TotalOrders = g.Count() // ✅ Counts total orders per user
+					TotalOrders = g.Count() 
 				})
-				.OrderByDescending(x => x.TotalOrders) // ✅ Sorts by order count (highest first)
+				.OrderByDescending(x => x.TotalOrders)
 				.ToListAsync();
 
 			return Ok(userOrderCounts);
@@ -411,10 +411,10 @@ namespace Sourav_Enterprise.Controllers
 					{
 						UserID = user.UserID,
 						UserName = user.Name,
-						MaxOrdersValue = orders.Any() ? orders.Max(o => o.TotalAmount) : 0 // ✅ Finds highest order value or 0 if no orders
+						MaxOrdersValue = orders.Any() ? orders.Max(o => o.TotalAmount) : 0
 					})
-				.OrderByDescending(x => x.MaxOrdersValue) // ✅ Sorts by highest order value first
-				.Take(5) // ✅ Limits to the TOP 5 users
+				.OrderByDescending(x => x.MaxOrdersValue)
+				.Take(5) 
 				.ToListAsync();
 
 			return Ok(topUsersByOrderValue);
@@ -448,7 +448,7 @@ namespace Sourav_Enterprise.Controllers
 			var pendingOrders = await _context.Users
 				.Join(_context.Orders, user => user.UserID, order => order.UserID,
 					(user, order) => new { user, order })
-				.Where(x => x.order.Status.ToLower() == "pending") // ✅ Filters only pending orders
+				.Where(x => x.order.Status.ToLower() == "pending")
 				.Select(x => new
 				{
 					UserID = x.user.UserID,
@@ -488,39 +488,6 @@ namespace Sourav_Enterprise.Controllers
 			if (!userOrderDetails.Any()) return NotFound($"Order is not Found Under {userId}");
 			return Ok(userOrderDetails);
 
-
-
-
-
-
-
-
-
-			//var userOrders = await _context.Orders
-			//	.Where(order => order.UserID == userId) // ✅ Filters orders by UserID
-			//	.GroupJoin(
-			//		_context.OrderItems.Include(oi => oi.Product), // ✅ Groups OrderItems with Products
-			//		order => order.OrderID,
-			//		orderItem => orderItem.OrderID,
-			//		(order, orderItems) => new
-			//		{
-			//			OrderID = order.OrderID,
-			//			TotalAmount = order.TotalAmount,
-			//			Status = order.Status,
-			//			OrderDate = order.OrderDate,
-			//			Products = orderItems.Select(item => new
-			//			{
-			//				item.ProductID,
-			//				ProductName = item.Product.Name,
-			//				item.Quantity,
-			//				item.Price
-			//			}).ToList()
-			//		})
-			//	.ToListAsync();
-
-			//if (!userOrders.Any()) return NotFound($"No orders found for User ID {userId}");
-
-			//return Ok(userOrders);
 		}
 
 		#endregion

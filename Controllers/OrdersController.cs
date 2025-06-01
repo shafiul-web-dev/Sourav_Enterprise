@@ -23,7 +23,6 @@ namespace Sourav_Enterprise.Controllers
 			_context = context;
 		}
 
-		// ✅ Create Order (POST)  
 		[HttpPost]
 		[Route("CreateOrder")]
 		public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequestDto orderDto)
@@ -43,7 +42,6 @@ namespace Sourav_Enterprise.Controllers
 					return BadRequest($"Product {item.ProductID} is unavailable or out of stock.");
 			}
 
-			// ✅ Step 1: Create & Save Order First
 			var order = new Order
 			{
 				UserID = orderDto.UserID,
@@ -53,35 +51,34 @@ namespace Sourav_Enterprise.Controllers
 			};
 
 			_context.Orders.Add(order);
-			await _context.SaveChangesAsync(); // ✅ Ensure OrderID is generated
+			await _context.SaveChangesAsync();
 
-			// ✅ Step 2: Now Add OrderItems After Order is Saved
+		
 			foreach (var item in orderDto.OrderItems)
 			{
 				var orderItem = new OrderItem
 				{
-					OrderID = order.OrderID, // ✅ Correct OrderID
+					OrderID = order.OrderID,
 					ProductID = item.ProductID,
 					Quantity = item.Quantity
 				};
 				_context.OrderItems.Add(orderItem);
 			}
 
-			await _context.SaveChangesAsync(); // ✅ Save OrderItems after Order exists
+			await _context.SaveChangesAsync();
 
 			return Ok(new { message = "Order Created Successfully!", OrderID = order.OrderID });
 		}
 
-		//✅ Get All Orders(GET)
 		[HttpGet]
 		[Route("GetAllOrders")]
 		public async Task<IActionResult> GetOrders()
 		{
 			var orders = await _context.Orders
 			.GroupJoin(
-				_context.OrderItems.Include(oi => oi.Product), // ✅ Ensure Products are loaded
-				order => order.OrderID, // ✅ Match OrderID
-				orderItem => orderItem.OrderID, // ✅ Match OrderItem's OrderID
+				_context.OrderItems.Include(oi => oi.Product),
+				order => order.OrderID,
+				orderItem => orderItem.OrderID,
 				(order, orderItems) => new
 				{
 					order.OrderID,
@@ -106,17 +103,16 @@ namespace Sourav_Enterprise.Controllers
 			.ToListAsync();
 			return Ok(orders);
 		}
-
-		// ✅ Get Order by ID (GET)  
+ 
 		[HttpGet("{orderId}")]
 		public async Task<IActionResult> GetOrderById(int orderId)
 		{
 			var order = await _context.Orders
-				.Where(o => o.OrderID == orderId) // ✅ Filter for specific order
+				.Where(o => o.OrderID == orderId)
 				.GroupJoin(
-					_context.OrderItems.Include(oi => oi.Product), // ✅ Ensure Product details are loaded
-					order => order.OrderID, // ✅ Match OrderID
-					orderItem => orderItem.OrderID, // ✅ Match OrderItem's OrderID
+					_context.OrderItems.Include(oi => oi.Product),
+					order => order.OrderID,
+					orderItem => orderItem.OrderID,
 					(order, orderItems) => new
 					{
 						order.OrderID,
@@ -138,15 +134,14 @@ namespace Sourav_Enterprise.Controllers
 						}).ToList()
 					}
 				)
-				.FirstOrDefaultAsync(); // ✅ Get only one order
+				.FirstOrDefaultAsync();
 
 			if (order == null)
 				return NotFound($"Order ID {orderId} not found.");
 
 			return Ok(order);
 		}
-
-		// ✅ Update Order Status (PUT)  
+ 
 		[HttpPut("{orderId}/status/{newStatus}")]
 		public async Task<IActionResult> UpdateOrderStatus(int orderId, string newStatus)
 		{
@@ -166,8 +161,7 @@ namespace Sourav_Enterprise.Controllers
 			await _context.SaveChangesAsync();
 			return Ok(order);
 		}
-
-		// ✅ Handle Payment (POST)  
+ 
 		[HttpPost("{orderId}/payment/{amountPaid}")]
 		public async Task<IActionResult> HandlePayment(int orderId, decimal amountPaid)
 		{
@@ -185,7 +179,7 @@ namespace Sourav_Enterprise.Controllers
 
 			return Ok(order);
 		}
-		//// ✅ Cancel Order (DELETE)  
+
 		[HttpDelete("CancelOrder/{orderId}")]
 		public async Task<IActionResult> CancelOrder(int orderId)
 		{
@@ -202,16 +196,15 @@ namespace Sourav_Enterprise.Controllers
 			return Ok(order);
 		}
 
-		//	// ✅ Get Orders by User (GET)  
 		[HttpGet("user/{userId}")]
 		public async Task<IActionResult> GetOrdersByUser(int userId)
 		{
 			var orders = await _context.Orders
-				.Where(o => o.UserID == userId) // ✅ Filter orders by user ID
+				.Where(o => o.UserID == userId)
 				.GroupJoin(
-					_context.OrderItems.Include(oi => oi.Product), // ✅ Ensure Product details are loaded
-					order => order.OrderID, // ✅ Match OrderID
-					orderItem => orderItem.OrderID, // ✅ Match OrderItem's OrderID
+					_context.OrderItems.Include(oi => oi.Product),
+					order => order.OrderID,
+					orderItem => orderItem.OrderID,
 					(order, orderItems) => new
 					{
 						order.OrderID,
@@ -241,16 +234,15 @@ namespace Sourav_Enterprise.Controllers
 			return Ok(orders);
 		}
 
-		// ✅ Get Orders by Status (GET)  
 		[HttpGet("status/{status}")]
 		public async Task<IActionResult> GetOrdersByStatus(string status)
 		{
 			var orders = await _context.Orders
-				.Where(o => o.Status.ToLower() == status.ToLower()) // ✅ Filter orders by status
+				.Where(o => o.Status.ToLower() == status.ToLower())
 				.GroupJoin(
-					_context.OrderItems.Include(oi => oi.Product), // ✅ Ensure Product details are loaded
-					order => order.OrderID, // ✅ Match OrderID
-					orderItem => orderItem.OrderID, // ✅ Match OrderItem's OrderID
+					_context.OrderItems.Include(oi => oi.Product),
+					order => order.OrderID,
+					orderItem => orderItem.OrderID,
 					(order, orderItems) => new
 					{
 						order.OrderID,
@@ -280,7 +272,7 @@ namespace Sourav_Enterprise.Controllers
 			return Ok(orders);
 		}
 
-		//Get Top Customers
+
 		[HttpGet("top-customers")]
 		public async Task<IActionResult> GetTopCustomers()
 		{
@@ -290,35 +282,33 @@ namespace Sourav_Enterprise.Controllers
 					{
 						UserID = user.UserID,
 						UserName = user.Name,
-						TotalSpent = orders.Sum(o => o.TotalAmount) // ✅ Calculates total spending
+						TotalSpent = orders.Sum(o => o.TotalAmount) 
 					})
 				.OrderByDescending(x => x.TotalSpent)
-				.Take(5) // ✅ Gets Top 5 Customers
+				.Take(5)
 				.ToListAsync();
 
 			return Ok(topCustomers);
 		}
-
-		//Get High Order Values 
+ 
 		[HttpGet("high-value-orders")]
 		public async Task<IActionResult> GetHighValueOrders()
 		{
-			// Calculate the average total amount
+
 			var averageTotalAmount = await _context.Orders.AverageAsync(o => o.TotalAmount);
 
-			// Fetch high-value orders using Method Syntax
 			var highValueOrders = await _context.Orders
 				.Join(_context.Users,
-					  order => order.UserID, // Match Order's UserID
-					  user => user.UserID, // Match User's UserID
+					  order => order.UserID,
+					  user => user.UserID,
 					  (order, user) => new
 					  {
 						  OrderID = order.OrderID,
 						  UserName = user.Name,
 						  TotalAmount = order.TotalAmount
 					  })
-				.Where(order => order.TotalAmount > averageTotalAmount) // Filter orders above average
-				.OrderByDescending(order => order.TotalAmount) // Sort by highest TotalAmount
+				.Where(order => order.TotalAmount > averageTotalAmount) 
+				.OrderByDescending(order => order.TotalAmount)
 				.ToListAsync();
 
 			if (!highValueOrders.Any())
@@ -327,14 +317,14 @@ namespace Sourav_Enterprise.Controllers
 			return Ok(highValueOrders);
 		}
 
-		//WHich customer order more than 5
+
 		[HttpGet("repeat-customers")]
 		public async Task<IActionResult> GetRepeatCustomers()
 		{
 			var repeatCustomers = await _context.Orders
 				.Join(_context.Users,
-					  order => order.UserID, // Match Order's UserID
-					  user => user.UserID, // Match User's UserID
+					  order => order.UserID, 
+					  user => user.UserID,
 					  (order, user) => new
 					  {
 						  UserName = user.Name,
@@ -342,8 +332,8 @@ namespace Sourav_Enterprise.Controllers
 						  OrderID = order.OrderID
 					  })
 				.GroupBy(order => new { order.UserName, order.Email })
-				.Where(group => group.Count() > 5) // Filter customers with > 5 orders
-				.OrderByDescending(group => group.Count()) // Sort by highest order count
+				.Where(group => group.Count() > 5) 
+				.OrderByDescending(group => group.Count())
 				.Select(group => new
 				{
 					UserName = group.Key.UserName,
@@ -358,19 +348,18 @@ namespace Sourav_Enterprise.Controllers
 			return Ok(repeatCustomers);
 		}
 
-		//Peak Time of Orders
 		[HttpGet("peak-shopping-hours")]
 		public async Task<IActionResult> GetPeakShoppingHours()
 		{
 			var oneMonthAgo = DateTime.UtcNow.AddMonths(-1);
 
 			var peakHours = await _context.Orders
-				.Where(order => order.OrderDate >= oneMonthAgo) // Filter orders from the last month
-				.GroupBy(order => order.OrderDate.Hour) // Group by hour (24-hour format)
-				.OrderByDescending(group => group.Count()) // Sort by highest order count
+				.Where(order => order.OrderDate >= oneMonthAgo) 
+				.GroupBy(order => order.OrderDate.Hour) 
+				.OrderByDescending(group => group.Count())
 				.Select(group => new
 				{
-					Hour = group.Key + ":00", // Format hour as "HH:00"
+					Hour = group.Key + ":00", 
 					TotalOrderCount = group.Count()
 				})
 				.ToListAsync();
@@ -381,19 +370,19 @@ namespace Sourav_Enterprise.Controllers
 			return Ok(peakHours);
 		}
 
-		//Which month has most Orders
+		
 		[HttpGet("seasonal-order-trends")]
 		public async Task<IActionResult> GetSeasonalOrderTrends()
 		{
 			var sixMonthsAgo = DateTime.UtcNow.AddMonths(-6);
 
 			var seasonalTrends = await _context.Orders
-				.Where(order => order.OrderDate >= sixMonthsAgo) // Filter orders from the last 6 months
-				.GroupBy(order => new { order.OrderDate.Year, order.OrderDate.Month }) // Group by year and month
-				.OrderByDescending(group => group.Count()) // Sort by highest order count
+				.Where(order => order.OrderDate >= sixMonthsAgo) 
+				.GroupBy(order => new { order.OrderDate.Year, order.OrderDate.Month }) 
+				.OrderByDescending(group => group.Count()) 
 				.Select(group => new
 				{
-					Month = $"{group.Key.Year}-{group.Key.Month:00}", // Format as "yyyy-MM"
+					Month = $"{group.Key.Year}-{group.Key.Month:00}",
 					TotalOrders = group.Count()
 				})
 				.ToListAsync();
@@ -404,18 +393,18 @@ namespace Sourav_Enterprise.Controllers
 			return Ok(seasonalTrends);
 		}
 
-		//Revenue Per Month
+		
 		[HttpGet("monthly-revenue")]
 		public async Task<IActionResult> GetMonthlyRevenue()
 		{
 			var monthlyRevenue = await _context.Orders
-				.GroupBy(order => new { order.OrderDate.Year, order.OrderDate.Month }) // Group by Year-Month
-				.OrderByDescending(group => group.Key.Year) // Sort by latest year first
-				.ThenByDescending(group => group.Key.Month) // Sort by latest month first
+				.GroupBy(order => new { order.OrderDate.Year, order.OrderDate.Month }) 
+				.OrderByDescending(group => group.Key.Year) 
+				.ThenByDescending(group => group.Key.Month) 
 				.Select(group => new
 				{
-					Month = $"{group.Key.Year}-{group.Key.Month:00}", // Format as "yyyy-MM"
-					MonthlyRevenue = group.Sum(order => order.TotalAmount) // Sum total revenue per month
+					Month = $"{group.Key.Year}-{group.Key.Month:00}",
+					MonthlyRevenue = group.Sum(order => order.TotalAmount) 
 				})
 				.ToListAsync();
 
@@ -425,20 +414,20 @@ namespace Sourav_Enterprise.Controllers
 			return Ok(monthlyRevenue);
 		}
 
-		//Most Order Customers
+		
 		[HttpGet("loyal-customers")]
 		public async Task<IActionResult> GetLoyalCustomers()
 		{
 			var loyalCustomers = await _context.Orders
-				.GroupBy(order => new { order.User.Name, order.User.Email }) // Group by Customer Name & Email
-				.OrderByDescending(group => group.Count()) // Sort by highest order count
+				.GroupBy(order => new { order.User.Name, order.User.Email }) 
+				.OrderByDescending(group => group.Count()) 
 				.Select(group => new
 				{
 					Name = group.Key.Name,
 					Email = group.Key.Email,
 					TotalOrders = group.Count()
 				})
-				.Take(5) // Select top 5 customers
+				.Take(5) 
 				.ToListAsync();
 
 			if (!loyalCustomers.Any())
@@ -447,14 +436,14 @@ namespace Sourav_Enterprise.Controllers
 			return Ok(loyalCustomers);
 		}
 
-        //Full Details of ORDER 
+        
 		[HttpGet("full-order-report")]
 		public async Task<IActionResult> GetFullOrderReport()
 		{
 			var fullOrderReport = await _context.Orders
 				.Join(_context.Users,
-					  order => order.UserID, // Match Order's UserID
-					  user => user.UserID, // Match User's UserID
+					  order => order.UserID, 
+					  user => user.UserID, 
 					  (order, user) => new
 					  {
 						  OrderID = order.OrderID,
@@ -462,8 +451,8 @@ namespace Sourav_Enterprise.Controllers
 						  Email = user.Email
 					  })
 				.Join(_context.OrderItems,
-					  order => order.OrderID, // Match OrderID in Orders
-					  orderItem => orderItem.OrderID, // Match OrderID in OrderItems
+					  order => order.OrderID, 
+					  orderItem => orderItem.OrderID, 
 					  (order, orderItem) => new
 					  {
 						  order.OrderID,
@@ -474,8 +463,8 @@ namespace Sourav_Enterprise.Controllers
 						  Price = orderItem.Price
 					  })
 				.Join(_context.Products,
-					  orderItem => orderItem.ProductID, // Match ProductID in OrderItems
-					  product => product.ProductID, // Match ProductID in Products
+					  orderItem => orderItem.ProductID, 
+					  product => product.ProductID, 
 					  (orderItem, product) => new
 					  {
 						  orderItem.OrderID,
@@ -486,8 +475,8 @@ namespace Sourav_Enterprise.Controllers
 						  orderItem.Price
 					  })
 				.Join(_context.Payments,
-					  order => order.OrderID, // Match OrderID in Orders
-					  payment => payment.OrderID, // Match OrderID in Payments
+					  order => order.OrderID, 
+					  payment => payment.OrderID,
 					  (order, payment) => new
 					  {
 						  order.OrderID,
@@ -499,8 +488,8 @@ namespace Sourav_Enterprise.Controllers
 						  PaymentAmount = payment.Amount
 					  })
 				.Join(_context.Shippings,
-					  order => order.OrderID, // Match OrderID in Orders
-					  shipping => shipping.OrderID, // Match OrderID in Shipping
+					  order => order.OrderID,
+					  shipping => shipping.OrderID,
 					  (order, shipping) => new
 					  {
 						  order.OrderID,
@@ -513,7 +502,7 @@ namespace Sourav_Enterprise.Controllers
 						  ShippingStatus = shipping.Status,
 						  ShippingDate = shipping.ShippingDate
 					  })
-				.OrderBy(order => order.OrderID) // Sort by OrderID (ascending)
+				.OrderBy(order => order.OrderID)
 				.ToListAsync();
 
 			if (!fullOrderReport.Any())
@@ -522,13 +511,13 @@ namespace Sourav_Enterprise.Controllers
 			return Ok(fullOrderReport);
 		}
 
-		//Pending Orders
+		
 		[HttpGet("pending-orders")]
 		public async Task<IActionResult> GetPendingOrders()
 		{
 			var pendingOrders = await _context.Orders
-				.Where(order => order.Status == "pending") // Filter orders with status 'pending'
-				.OrderBy(order => order.OrderID) // Sort by OrderID (ascending)
+				.Where(order => order.Status == "pending") 
+				.OrderBy(order => order.OrderID)
 				.ToListAsync();
 
 			if (!pendingOrders.Any())
@@ -537,16 +526,16 @@ namespace Sourav_Enterprise.Controllers
 			return Ok(pendingOrders);
 		}
 
-		//Order of Last 30 Days 
+		
 		[HttpGet("orders-last-30-days")]
 		public async Task<IActionResult> GetOrdersLast30Days()
 		{
 			var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
 
 			var recentOrders = await _context.Orders
-				.Where(order => order.OrderDate >= thirtyDaysAgo) // Filter orders from the last 30 days
-				.GroupBy(order => order.OrderID) // Group by OrderID
-				.OrderByDescending(group => group.Count()) // Sort by highest order count
+				.Where(order => order.OrderDate >= thirtyDaysAgo) 
+				.GroupBy(order => order.OrderID)
+				.OrderByDescending(group => group.Count())
 				.Select(group => new
 				{
 					OrderID = group.Key,
@@ -566,8 +555,8 @@ namespace Sourav_Enterprise.Controllers
 			var sevenDaysAgo = DateTime.UtcNow.AddDays(-7);
 
 			var recentOrders = await _context.Orders
-				.Where(order => order.OrderDate >= sevenDaysAgo) // Filter orders from the last 7 days
-				.OrderByDescending(order => order.OrderID) // Sort by latest OrderID
+				.Where(order => order.OrderDate >= sevenDaysAgo)
+				.OrderByDescending(order => order.OrderID)
 				.Select(order => new
 				{
 					OrderID = order.OrderID,
@@ -588,18 +577,18 @@ namespace Sourav_Enterprise.Controllers
 		{
 			var cancelledOrders = await _context.Orders
 				.Join(_context.Payments,
-					  order => order.OrderID, // Match OrderID in Orders
-					  payment => payment.OrderID, // Match OrderID in Payments
+					  order => order.OrderID, 
+					  payment => payment.OrderID,
 					  (order, payment) => new
 					  {
 						  OrderID = order.OrderID,
-						  Customer = order.User.Name, // Navigation property for User
+						  Customer = order.User.Name,
 						  PaymentMethod = payment.PaymentMethod,
 						  Status = order.Status,
 						  Amount = payment.Amount
 					  })
-				.Where(order => order.Status == "Cancelled") // Filter cancelled orders
-				.OrderByDescending(order => order.Amount) // Sort by highest payment amount
+				.Where(order => order.Status == "Cancelled")
+				.OrderByDescending(order => order.Amount)
 				.ToListAsync();
 
 			if (!cancelledOrders.Any())
@@ -608,8 +597,8 @@ namespace Sourav_Enterprise.Controllers
 			return Ok(cancelledOrders);
 		}
 
-		// 🔹 Update Stock on Order Placement
-		[HttpPut("update-stock/{productId}/{quantity}")]  // 🔹 Explicit HTTP method
+		
+		[HttpPut("update-stock/{productId}/{quantity}")] 
 		public async Task<IActionResult> UpdateStockOnOrder(int productId, int quantity)
 		{
 			var inventory = await _context.Inventories.FirstOrDefaultAsync(i => i.ProductID == productId);
@@ -634,12 +623,12 @@ namespace Sourav_Enterprise.Controllers
 			{
 				foreach (var item in order.OrderItems)
 				{
-					// Fetch inventory directly
+					
 					var inventory = await _context.Inventories.FirstOrDefaultAsync(i => i.ProductID == item.ProductID);
 					if (inventory == null || inventory.QuantityInStock < item.Quantity)
 						return BadRequest($"Insufficient stock for Product {item.ProductID}");
 
-					// Deduct stock quantity
+					
 					inventory.QuantityInStock -= item.Quantity;
 					inventory.LastUpdated = DateTime.UtcNow;
 					_context.Inventories.Update(inventory);
