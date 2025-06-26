@@ -29,6 +29,13 @@ namespace Sourav_Enterprise.Data
 		public DbSet<BestSellingCategoryViewModel> BestSellingCategoryViewModel { get; set; }
 		public DbSet<CategoryProfitabilityViewModel> CategoryProfitabilityViewModel { get; set; }
 		public DbSet<CategoryDemandForecastViewModel> CategoryDemandForecastViewModel { get; set; }
+		public DbSet<AverageOrderValueViewModel> AverageOrderValueViewModel { get; set; }
+		public DbSet<CustomerCategoryPreferenceViewModel> CustomerCategoryPreferenceViewModel { get; set; }
+
+
+
+
+
 
 
 
@@ -43,6 +50,12 @@ namespace Sourav_Enterprise.Data
 
 			base.OnModelCreating(modelBuilder);
 			modelBuilder.Entity<CategoryDemandForecastViewModel>().HasNoKey();
+
+			base.OnModelCreating(modelBuilder);
+			modelBuilder.Entity<AverageOrderValueViewModel>().HasNoKey();
+
+			base.OnModelCreating(modelBuilder);
+			modelBuilder.Entity<CustomerCategoryPreferenceViewModel>().HasNoKey();
 
 
 

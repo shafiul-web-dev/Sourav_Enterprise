@@ -117,7 +117,23 @@ namespace Sourav_Enterprise.Controllers
 			return Ok(result);
 		}
 
+		[HttpGet("analytics/average-order-value")]
+		public async Task<IActionResult> GetAverageOrderValueByCategory()
+		{
+			var result = await _context.AverageOrderValueViewModel
+				.FromSqlRaw("EXEC sp_GetAverageOrderValueByCategory")
+				.ToListAsync();
+			return Ok(result);
+		}
 
+		[HttpGet("analytics/popular-category-per-customer")]
+		public async Task<IActionResult> GetMostPopularCategoryPerCustomer()
+		{
+			var result = await _context.CustomerCategoryPreferenceViewModel
+				.FromSqlRaw("EXEC sp_GetMostPopularCategoryPerCustomer")
+				.ToListAsync();
+			return Ok(result);
+		}
 
 
 
