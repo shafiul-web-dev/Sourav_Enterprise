@@ -92,5 +92,17 @@ namespace Sourav_Enterprise.Controllers
 			return Ok("Category deleted successfully using stored procedure.");
 		}
 
+		[HttpGet("analytics/best-selling-categories")]
+		public async Task<IActionResult> GetBestSellingCategories()
+		{
+			var result = await _context.BestSellingCategoryViewModel
+				.FromSqlRaw("EXEC sp_GetBestSellingCategories")
+				.ToListAsync();
+
+			return Ok(result);
+		}
+
+
+
 	}  
 }

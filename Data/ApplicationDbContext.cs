@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Sourav_Enterprise.Models;
+using Sourav_Enterprise.Models.ViewModels;
 using System;
 
 namespace Sourav_Enterprise.Data
@@ -25,8 +26,15 @@ namespace Sourav_Enterprise.Data
 		public DbSet<Inventory> Inventories { get; set; }
 		public DbSet<Coupon> Coupons { get; set; }
 
+		public DbSet<BestSellingCategoryViewModel> BestSellingCategoryViewModel { get; set; }
+
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{
+			base.OnModelCreating(modelBuilder);
+
+			modelBuilder.Entity<BestSellingCategoryViewModel>().HasNoKey();
+
+
 			// Apply Foreign Key Constraints & Delete Behavior
 			modelBuilder.Entity<UserAddress>()
 				.HasOne(ua => ua.User)
