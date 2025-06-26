@@ -135,7 +135,41 @@ namespace Sourav_Enterprise.Controllers
 			return Ok(result);
 		}
 
+		[HttpGet("analytics/category-inventory-optimization")]
+		public async Task<IActionResult> GetCategoryInventoryOptimization()
+		{
+			var result = await _context.CategoryInventoryViewModel
+				.FromSqlRaw("EXEC sp_GetCategoryInventoryOptimization")
+				.ToListAsync();
 
+			return Ok(result);
+		}
 
+		[HttpGet("analytics/top-selling-products")]
+		public async Task<IActionResult> GetTopSellingProducts()
+		{
+			var result = await _context.TopSellingProductViewModel
+				.FromSqlRaw("EXEC sp_GetTopSellingProducts")
+				.ToListAsync();
+			return Ok(result);
+		}
+
+		[HttpGet("analytics/product-count-per-category")]
+		public async Task<IActionResult> GetProductCountPerCategory()
+		{
+			var result = await _context.ProductCountPerCategoryViewModel
+				.FromSqlRaw("EXEC sp_GetProductCountPerCategory")
+				.ToListAsync();
+			return Ok(result);
+		}
+
+		[HttpGet("analytics/category-revenue-share")]
+		public async Task<IActionResult> GetCategoryRevenueShare()
+		{
+			var result = await _context.CategoryRevenueShareViewModel
+				.FromSqlRaw("EXEC sp_GetCategoryRevenueShare")
+				.ToListAsync();
+			return Ok(result);
+		}
 	}  
 }

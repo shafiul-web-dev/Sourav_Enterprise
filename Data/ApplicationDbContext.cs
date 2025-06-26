@@ -31,11 +31,10 @@ namespace Sourav_Enterprise.Data
 		public DbSet<CategoryDemandForecastViewModel> CategoryDemandForecastViewModel { get; set; }
 		public DbSet<AverageOrderValueViewModel> AverageOrderValueViewModel { get; set; }
 		public DbSet<CustomerCategoryPreferenceViewModel> CustomerCategoryPreferenceViewModel { get; set; }
-
-
-
-
-
+		public DbSet<CategoryInventoryViewModel> CategoryInventoryViewModel { get; set; }
+		public DbSet<TopSellingProductViewModel> TopSellingProductViewModel { get; set; }
+		public DbSet<ProductCountPerCategoryViewModel> ProductCountPerCategoryViewModel { get; set; }
+		public DbSet<CategoryRevenueShareViewModel> CategoryRevenueShareViewModel { get; set; }
 
 
 
@@ -57,7 +56,17 @@ namespace Sourav_Enterprise.Data
 			base.OnModelCreating(modelBuilder);
 			modelBuilder.Entity<CustomerCategoryPreferenceViewModel>().HasNoKey();
 
+			base.OnModelCreating(modelBuilder);
+			modelBuilder.Entity<CategoryInventoryViewModel>().HasNoKey();
 
+			base.OnModelCreating(modelBuilder);
+			modelBuilder.Entity<TopSellingProductViewModel>().HasNoKey();
+
+			base.OnModelCreating(modelBuilder);
+			modelBuilder.Entity<ProductCountPerCategoryViewModel>().HasNoKey();
+
+			base.OnModelCreating(modelBuilder);
+			modelBuilder.Entity<CategoryRevenueShareViewModel>().HasNoKey();
 
 
 			// Apply Foreign Key Constraints & Delete Behavior
