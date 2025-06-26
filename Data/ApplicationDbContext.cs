@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Sourav_Enterprise.DTO.CategoryDto;
 using Sourav_Enterprise.Models;
 using Sourav_Enterprise.Models.ViewModels;
 using System;
@@ -35,8 +36,7 @@ namespace Sourav_Enterprise.Data
 		public DbSet<TopSellingProductViewModel> TopSellingProductViewModel { get; set; }
 		public DbSet<ProductCountPerCategoryViewModel> ProductCountPerCategoryViewModel { get; set; }
 		public DbSet<CategoryRevenueShareViewModel> CategoryRevenueShareViewModel { get; set; }
-
-
+		public DbSet<CategoryListDto> CategoryListDto { get; set; }
 
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -67,6 +67,10 @@ namespace Sourav_Enterprise.Data
 
 			base.OnModelCreating(modelBuilder);
 			modelBuilder.Entity<CategoryRevenueShareViewModel>().HasNoKey();
+
+			base.OnModelCreating(modelBuilder);
+			modelBuilder.Entity<CategoryListDto>().HasNoKey();
+
 
 
 			// Apply Foreign Key Constraints & Delete Behavior

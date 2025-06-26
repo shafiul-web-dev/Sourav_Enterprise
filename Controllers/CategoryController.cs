@@ -4,8 +4,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Sourav_Enterprise.Data;
+using Sourav_Enterprise.DTO.CategoryDto;
 using Sourav_Enterprise.Models;
 
 namespace Sourav_Enterprise.Controllers
@@ -169,6 +171,83 @@ namespace Sourav_Enterprise.Controllers
 			var result = await _context.CategoryRevenueShareViewModel
 				.FromSqlRaw("EXEC sp_GetCategoryRevenueShare")
 				.ToListAsync();
+			return Ok(result);
+		}
+		[HttpPost("add")]
+		public async Task<IActionResult> AddCategory([FromBody] CategoryCreateRequest request)
+		{
+			try
+			{
+				var nameParam = new SqlParameter("@Name", request.Name);
+				var descParam = new SqlParameter("@Description", request.Description);
+
+				await _context.Database.ExecuteSqlRawAsync("EXEC sp_AddCategoryButCheckDuplicate @Name, @Description", nameParam, descParam);
+
+				return Ok(new { message = "Category added successfully." });
+			}
+			catch (SqlException ex)
+			{
+				if (ex.Message.Contains("already exists"))
+					return Conflict(new { error = ex.Message });
+
+				return StatusCode(500, new { error = ex.Message });
+			}
+		}
+
+		[HttpDelete("{id}")]
+		public async Task<IActionResult> DeleteCategorySafely(int id)
+		{
+			try
+			{
+				var idParam = new SqlParameter("@CategoryID", id);
+
+				await _context.Database.ExecuteSqlRawAsync("EXEC sp_DeleteCategorySafely @CategoryID", idParam);
+
+				return Ok(new { message = "Category deleted successfully." });
+			}
+			catch (SqlException ex)
+			{
+				if (ex.Message.Contains("in use"))
+					return Conflict(new { error = ex.Message });
+
+				return StatusCode(500, new { error = ex.Message });
+			}
+		}
+		[HttpPost("assign-featured-products")]
+		public async Task<IActionResult> AssignFeaturedProducts()
+		{
+			try
+			{
+				await _context.Database.ExecuteSqlRawAsync("EXEC sp_AssignFeaturedProducts");
+				return Ok(new { message = "Featured products have been assigned." });
+			}
+			catch (Exception ex)
+			{
+				return StatusCode(500, new { error = ex.Message });
+			}
+		}
+
+		[HttpGet("get-all")]
+		public async Task<IActionResult> GetAllCategories(
+         [FromQuery] string search = null,
+       	[FromQuery] string sortBy = "Name",
+	     [FromQuery] bool sortDesc = false,
+	    [FromQuery] int page = 1,
+	    [FromQuery] int pageSize = 10,
+	    [FromQuery] bool? isActive = null)
+		{
+			var searchParam = new SqlParameter("@Search", search ?? (object)DBNull.Value);
+			var sortByParam = new SqlParameter("@SortBy", sortBy);
+			var sortDescParam = new SqlParameter("@SortDesc", sortDesc);
+			var pageParam = new SqlParameter("@Page", page);
+			var pageSizeParam = new SqlParameter("@PageSize", pageSize);
+			var isActiveParam = new SqlParameter("@IsActive", isActive ?? (object)DBNull.Value);
+
+			var result = await _context.CategoryListDto
+				.FromSqlRaw("EXEC sp_GetAllCategoriesAdvanced @Search, @SortBy, @SortDesc, @Page, @PageSize, @IsActive",
+					searchParam, sortByParam, sortDescParam, pageParam, pageSizeParam, isActiveParam)
+				.ToListAsync();
+
 			return Ok(result);
 		}
 	}  
