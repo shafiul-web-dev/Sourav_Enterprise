@@ -27,12 +27,24 @@ namespace Sourav_Enterprise.Data
 		public DbSet<Coupon> Coupons { get; set; }
 
 		public DbSet<BestSellingCategoryViewModel> BestSellingCategoryViewModel { get; set; }
+		public DbSet<CategoryProfitabilityViewModel> CategoryProfitabilityViewModel { get; set; }
+		public DbSet<CategoryDemandForecastViewModel> CategoryDemandForecastViewModel { get; set; }
+
+
+
 
 		protected override void OnModelCreating(ModelBuilder modelBuilder)
 		{
 			base.OnModelCreating(modelBuilder);
-
 			modelBuilder.Entity<BestSellingCategoryViewModel>().HasNoKey();
+
+			base.OnModelCreating(modelBuilder);
+			modelBuilder.Entity<CategoryProfitabilityViewModel>().HasNoKey();
+
+			base.OnModelCreating(modelBuilder);
+			modelBuilder.Entity<CategoryDemandForecastViewModel>().HasNoKey();
+
+
 
 
 			// Apply Foreign Key Constraints & Delete Behavior

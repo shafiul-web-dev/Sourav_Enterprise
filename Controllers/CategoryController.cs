@@ -40,7 +40,6 @@ namespace Sourav_Enterprise.Controllers
 
 			if (category == null)
 				return NotFound($"No category found with ID = {id}");
-
 			return Ok(category);
 		}
 
@@ -55,7 +54,6 @@ namespace Sourav_Enterprise.Controllers
 				category.Name,
 				category.Description
 			);
-
 			return Ok("Category created successfully using stored procedure.");
 		}
 
@@ -98,9 +96,28 @@ namespace Sourav_Enterprise.Controllers
 			var result = await _context.BestSellingCategoryViewModel
 				.FromSqlRaw("EXEC sp_GetBestSellingCategories")
 				.ToListAsync();
-
 			return Ok(result);
 		}
+
+		[HttpGet("analytics/category-profitability")]
+		public async Task<IActionResult> GetCategoryProfitability()
+		{
+			var result = await _context.CategoryProfitabilityViewModel
+				.FromSqlRaw("EXEC sp_GetCategoryProfitability")
+				.ToListAsync();
+			return Ok(result);
+		}
+
+		[HttpGet("analytics/category-demand-forecast")]
+		public async Task<IActionResult> GetCategoryDemandForecast()
+		{
+			var result = await _context.CategoryDemandForecastViewModel
+				.FromSqlRaw("EXEC sp_GetCategoryDemandForecast")
+				.ToListAsync();
+			return Ok(result);
+		}
+
+
 
 
 
