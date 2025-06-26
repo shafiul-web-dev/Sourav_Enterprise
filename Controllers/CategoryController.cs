@@ -59,5 +59,38 @@ namespace Sourav_Enterprise.Controllers
 			return Ok("Category created successfully using stored procedure.");
 		}
 
+		[HttpPut("UpdateCategory/{id}")]
+		public async Task<IActionResult> UpdateCategory(int id, [FromBody] Category category)
+		{
+			if (id != category.CategoryID)
+				return BadRequest("Category ID mismatch.");
+
+			var exists = await _context.Categories.AnyAsync(c => c.CategoryID == id);
+			if (!exists)
+				return NotFound($"No category found with ID = {id}");
+
+			await _context.Database.ExecuteSqlRawAsync(
+				"EXEC sp_UpdateCategory @CategoryID = {0}, @Name = {1}, @Description = {2}",
+				category.CategoryID,
+				category.Name,
+				category.Description
+			);
+			return Ok("Category updated successfully using stored procedure.");
+		}
+
+		[HttpDelete("DeleteCategory/{id}")]
+		public async Task<IActionResult> DeleteCategory(int id)
+		{
+			var exists = await _context.Categories.AnyAsync(c => c.CategoryID == id);
+			if (!exists)
+				return NotFound($"No category found with ID = {id}");
+
+			await _context.Database.ExecuteSqlRawAsync(
+				"EXEC sp_DeleteCategory @CategoryID = {0}",
+				id
+			);
+			return Ok("Category deleted successfully using stored procedure.");
+		}
+
 	}  
 }
