@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Sourav_Enterprise.Data;
+using Sourav_Enterprise.DTO.PaymentDto;
 using Sourav_Enterprise.Models;
 
 namespace Sourav_Enterprise.Controllers
@@ -18,7 +19,7 @@ namespace Sourav_Enterprise.Controllers
 		}
 
 		[HttpPost("process")]
-		public async Task<IActionResult> ProcessPayment([FromBody] Payment request)
+		public async Task<IActionResult> ProcessPayment([FromBody] ProcessPaymentDto request)
 		{
 			var order = await _context.Orders.FindAsync(request.OrderID);
 			if (order == null) return NotFound("Order not found.");
