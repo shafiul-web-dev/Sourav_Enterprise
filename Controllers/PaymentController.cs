@@ -17,7 +17,6 @@ namespace Sourav_Enterprise.Controllers
 			_context = context;
 		}
 
-		// 1️⃣ Create a payment entry
 		[HttpPost("process")]
 		public async Task<IActionResult> ProcessPayment([FromBody] Payment request)
 		{
