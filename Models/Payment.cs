@@ -17,7 +17,7 @@ namespace Sourav_Enterprise.Models
 
 		[Required]
 		[MaxLength(50)]
-		public string PaymentMethod { get; set; } // Validate allowed values in application logic
+		public string PaymentMethod { get; set; }
 
 		public DateTime PaymentDate { get; set; } = DateTime.UtcNow;
 
