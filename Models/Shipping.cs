@@ -14,12 +14,12 @@ namespace Sourav_Enterprise.Models
 		[Required]
 		public int UserAddressID { get; set; }
 
-		// Nullable foreign key to Expenses.
+
 		public int? ExpenseID { get; set; }
 
 		[Required]
 		[MaxLength(20)]
-		public string Status { get; set; } // Validate allowed values: "Pending", "Shipped", "Delivered"
+		public string Status { get; set; } 
 
 		public DateTime ShippingDate { get; set; } = DateTime.UtcNow;
 

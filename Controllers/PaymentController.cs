@@ -36,6 +36,21 @@ namespace Sourav_Enterprise.Controllers
 
 			order.Status = "Paid";
 
+			var userAddressId = order.UserAddressID;
+
+			if (userAddressId != 0)
+			{
+				var shipping = new Shipping
+				{
+					OrderID = request.OrderID,
+					UserAddressID = userAddressId,
+					Status = "Pending",
+					ShippingDate = DateTime.UtcNow
+				};
+
+				_context.Shippings.Add(shipping);
+			}
+
 			await _context.SaveChangesAsync();
 
 			return Ok(new { message = "Payment processed successfully." });
