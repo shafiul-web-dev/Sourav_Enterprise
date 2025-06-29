@@ -21,8 +21,22 @@ namespace Sourav_Enterprise.Controllers
 		[HttpPost("process")]
 		public async Task<IActionResult> ProcessPayment([FromBody] ProcessPaymentDto request)
 		{
-			var order = await _context.Orders.FindAsync(request.OrderID);
-			if (order == null) return NotFound("Order not found.");
+			var order = await _context.Orders
+				.Include(o => o.OrderItems)
+				.FirstOrDefaultAsync(o => o.OrderID == request.OrderID);
+
+			if (order == null)
+				return NotFound("Order not found.");
+
+			foreach (var item in order.OrderItems)
+			{
+				var inventory = await _context.Inventories.FirstOrDefaultAsync(i => i.ProductID == item.ProductID);
+				if (inventory == null)
+					return BadRequest($"No inventory found for ProductID {item.ProductID}");
+
+				if (inventory.QuantityInStock < item.Quantity)
+					return BadRequest($"Insufficient stock for ProductID {item.ProductID}");
+			}
 
 			var payment = new Payment
 			{
@@ -31,29 +45,32 @@ namespace Sourav_Enterprise.Controllers
 				PaymentMethod = request.PaymentMethod,
 				PaymentDate = DateTime.UtcNow
 			};
-
 			_context.Payments.Add(payment);
 
 			order.Status = "Paid";
 
 			var userAddressId = order.UserAddressID;
-
 			if (userAddressId != 0)
 			{
 				var shipping = new Shipping
 				{
-					OrderID = request.OrderID,
+					OrderID = order.OrderID,
 					UserAddressID = userAddressId,
 					Status = "Pending",
 					ShippingDate = DateTime.UtcNow
 				};
-
 				_context.Shippings.Add(shipping);
 			}
 
-			await _context.SaveChangesAsync();
+			foreach (var item in order.OrderItems)
+			{
+				var inventory = await _context.Inventories.FirstOrDefaultAsync(i => i.ProductID == item.ProductID);
+				inventory.QuantityInStock -= item.Quantity;
+				inventory.LastUpdated = DateTime.UtcNow;
+			}
 
-			return Ok(new { message = "Payment processed successfully." });
+			await _context.SaveChangesAsync();
+			return Ok(new { message = "Payment processed, shipping created, and stock updated." });
 		}
 
 		[HttpGet("{paymentId}")]

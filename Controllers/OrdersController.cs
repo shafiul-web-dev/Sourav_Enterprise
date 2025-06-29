@@ -180,20 +180,38 @@ namespace Sourav_Enterprise.Controllers
 			return Ok(order);
 		}
 
-		[HttpDelete("CancelOrder/{orderId}")]
-		public async Task<IActionResult> CancelOrder(int orderId)
+		[HttpPut("cancel/{orderId}")]
+		public async Task<IActionResult> CancelOrders(int orderId)
 		{
-			var order = await _context.Orders.FindAsync(orderId);
+			var order = await _context.Orders
+				.Include(o => o.OrderItems)
+				.FirstOrDefaultAsync(o => o.OrderID == orderId);
+
 			if (order == null)
-				return NotFound($"Order ID {orderId} not found.");
+				return NotFound("Order not found.");
 
-			if (order.Status == "Shipped" || order.Status == "Delivered")
-				return BadRequest("Order cannot be canceled at this stage.");
+			if (order.Status == "Cancelled")
+				return BadRequest("Order is already cancelled.");
 
-			order.Status = "Canceled";
+			if (order.Status == "Delivered")
+				return BadRequest("Delivered orders cannot be cancelled.");
+
+
+			foreach (var item in order.OrderItems)
+			{
+				var inventory = await _context.Inventories.FirstOrDefaultAsync(i => i.ProductID == item.ProductID);
+				if (inventory != null)
+				{
+					inventory.QuantityInStock += item.Quantity;
+					inventory.LastUpdated = DateTime.UtcNow;
+				}
+			}
+
+			order.Status = "Cancelled";
+
 			await _context.SaveChangesAsync();
 
-			return Ok(order);
+			return Ok(new { message = "Order cancelled and inventory restored." });
 		}
 
 		[HttpGet("user/{userId}")]
